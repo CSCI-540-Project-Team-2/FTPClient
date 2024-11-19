@@ -65,7 +65,7 @@ while True:
         else:
             print('Please enter y or n!')
     except TimeoutError:
-        print('Connection to server timed out. Please check the entered URL and verify you are ablet connect to the internet.')
+        print('Connection timed out. Please check URL and verify internet connection.')
 
 
 while True:
