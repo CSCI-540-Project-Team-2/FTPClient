@@ -42,27 +42,30 @@ def cd():
 
 while True:
     # credentials
-    host = input('Enter URL of FTP server: ')
-    anonymous = input('Is a username and password required y/n?: ')
-    # connect to server
-    if anonymous.lower() == 'y':
-        try:
-            user = input('Username: ')
-            passwd = input('Password: ')
-            server = ftplib.FTP(host, user, passwd)
-            server.encoding = 'utf-8'
-            break
-        except ValueError:
-            print('Incorrect URL, Username, or Password!')
-    elif anonymous.lower() == 'n':
-        try:
-            server = ftplib.FTP(host, 'anonymous', ' ')
-            server.encoding = 'utf-8'
-            break
-        except ValueError:
-            print('Incorrect URL, or a username/password is required!')
-    else:
-        print('Please enter y or n!')
+    try:
+        host = input('Enter URL of FTP server: ')
+        anonymous = input('Is a username and password required y/n?: ')
+        # connect to server
+        if anonymous.lower() == 'y':
+            try:
+                user = input('Username: ')
+                passwd = input('Password: ')
+                server = ftplib.FTP(host, user, passwd,'','',10)
+                server.encoding = 'utf-8'
+                break
+            except ValueError:
+                print('Incorrect URL, Username, or Password!')
+        elif anonymous.lower() == 'n':
+            try:
+                server = ftplib.FTP(host,'Anonymous','','',10)
+                server.encoding = 'utf-8'
+                break
+            except ValueError:
+                print('Incorrect URL, or a username/password is required!')
+        else:
+            print('Please enter y or n!')
+    except TimeoutError:
+        print('Connection to server timed out. Please check the entered URL and verify you are ablet connect to the internet.')
 
 
 while True:
