@@ -1,2 +1,1 @@
-import FTPClient
-
+from FTPClient import FTPBackend
