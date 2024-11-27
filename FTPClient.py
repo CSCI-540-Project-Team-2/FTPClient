@@ -1,10 +1,11 @@
 import ftplib
 class FTPBackend:
     GUILaunch = False
-    def __init__(self, user, passwd, isGUI):
+    def __init__(self, server, user, passwd, isGUI):
+        self.server = server
         self.user = user
         self.passwd = passwd
-        GUILaunch = isGUI
+        self.GUILaunch = isGUI
 
     def upload(self):
         # filename to upload
@@ -44,32 +45,35 @@ class FTPBackend:
             print('ERROR: Directory not found!')
 
     def logon(self):
-        while True:
-            # credentials
-            try:
-                host = input('Enter URL of FTP server: ')
-                anonymous = input('Is a username and password required y/n?: ')
-                # connect to server
-                if anonymous.lower() == 'y':
-                    try:
-                        user = input('Username: ')
-                        passwd = input('Password: ')
-                        self.server = ftplib.FTP(host, user, passwd,'','',10)
-                        self.server.encoding = 'utf-8'
-                        break
-                    except ValueError:
-                        print('Incorrect URL, Username, or Password!')
-                elif anonymous.lower() == 'n':
-                    try:
-                        self.server = ftplib.FTP(host,'Anonymous','','',10)
-                        self.server.encoding = 'utf-8'
-                        break
-                    except ValueError:
-                        print('Incorrect URL, or a username/password is required!')
-                else:
-                    print('Please enter y or n!')
-            except TimeoutError:
-                print('Connection timed out. Please check URL and verify internet connection.')
+        if(self.GUILaunch):
+            self.server = ftplib.FTP(self.server, self.user, self.passwd,'',10)
+        else:
+            while True:
+                # credentials
+                try:
+                    host = input('Enter URL of FTP server: ')
+                    anonymous = input('Is a username and password required y/n?: ')
+                    # connect to server
+                    if anonymous.lower() == 'y':
+                        try:
+                            user = input('Username: ')
+                            passwd = input('Password: ')
+                            self.server = ftplib.FTP(host, user, passwd,'',10)
+                            self.server.encoding = 'utf-8'
+                            break
+                        except ValueError:
+                            print('Incorrect URL, Username, or Password!')
+                    elif anonymous.lower() == 'n':
+                        try:
+                            self.server = ftplib.FTP(host,'Anonymous','','',10)
+                            self.server.encoding = 'utf-8'
+                            break
+                        except ValueError:
+                            print('Incorrect URL, or a username/password is required!')
+                    else:
+                        print('Please enter y or n!')
+                except TimeoutError:
+                    print('Connection timed out. Please check URL and verify internet connection.')
 
     def cliUI(self):
         while True:
