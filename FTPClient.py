@@ -7,12 +7,18 @@ class FTPBackend:
         self.passwd = passwd
         self.GUILaunch = isGUI
 
-    def upload(self):
+    def upload(self, fileName):
         # filename to upload
+        if(fileName != ''):
+            try:
+                with open(fileName, 'rb') as file:
+                    self.server.storbinary('STOR {fileName}', file)
+            except ValueError:
+                print('still dunno')
         filename = input('Enter filename to upload: ')
         try:
             with open(filename, 'rb') as file:
-                self.server.storbinary(f'STOR {filename}', file)
+                self.server.storbinary('STOR {filename}', file)
         except ValueError:
             print('ERROR: Could not upload file!')
             self.server.quit()
@@ -22,12 +28,18 @@ class FTPBackend:
         # view contents of server
         self.server.dir()
 
-    def download(self):
+    def download(self, fileName):
         # filename to retrieve
+        if(fileName != ''):
+            try:
+                with open(fileName, 'wb') as file:
+                    self.server.retrbinary('RETR {fileName}', file.write)
+            except ValueError:
+                print('i dunno')
         filename = input('Enter filename to download: ')
         try:
             with open(filename, 'wb') as file:
-                self.server.retrbinary(f'RETR {filename}', file.write)
+                self.server.retrbinary('RETR {filename}', file.write)
         except ValueError:
             print('ERROR: Could not download file!')
             self.server.quit()
@@ -74,15 +86,14 @@ class FTPBackend:
                         print('Please enter y or n!')
                 except TimeoutError:
                     print('Connection timed out. Please check URL and verify internet connection.')
-
     def cliUI(self):
         while True:
             print('Welcome to FTP Client!')
             userInput = input('Input upload, download, view, cd, or quit: ')
             if userInput.lower() == 'upload':
-                self.upload()
+                self.upload('')
             elif userInput.lower() == 'download':
-                self.download()
+                self.download('')
             elif userInput.lower() == 'view':
                 self.view()
             elif userInput.lower() == 'cd':
