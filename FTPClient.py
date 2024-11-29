@@ -48,7 +48,12 @@ class FTPBackend:
             self.server.quit()
 
 
-    def cd(self):
+    def cd(self,fileName):
+        if(fileName != ''):
+            try:
+                self.server.cwd(directory)
+            except error_perm:
+                pass
         # change working directory
         directory = input('Enter directory to go to: ')
         try:
@@ -97,7 +102,7 @@ class FTPBackend:
             elif userInput.lower() == 'view':
                 self.view()
             elif userInput.lower() == 'cd':
-                self.cd()
+                self.cd('')
             elif userInput.lower() == 'quit':
                 self.server.quit()
             else:

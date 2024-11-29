@@ -1,6 +1,10 @@
 from FTPClient import *
 from tkinter import *
 from tkinter import ttk
+import os
+if(os.name == 'nt'):
+    import string
+    from ctypes import windll
 ftpobject = None
 def anonDisable(var, a, b):
     if(var.get() == 1):
@@ -65,15 +69,42 @@ def login_window():
     submit.pack()
     login.grab_set()
     root.wait_window(login)
-    
-def populateLocal():
-    pass
+def directoryChange(location):
+    if(location == 'local' and os.path.isdir(localFiles.get(localFiles.curselection()))):
+        if(os.path.abspath(os.curdir) == (os.path.abspath(os.curdir)[0] + ':\\') and localFiles.get(localFiles.curselection()) == '..'):
+            WinDevs()
+        else:
+            os.chdir(localFiles.get(localFiles.curselection()))
+            populateLocal(os.path.abspath(os.curdir))
+def WinDevs():
+    drives = []
+    bitmask = windll.kernel32.GetLogicalDrives()
+    print(bitmask)
+    for letter in string.ascii_uppercase:
+        if bitmask & 1:
+            drives.append(letter)
+        bitmask >>= 1
+    localFiles.delete(0,END)
+    for d in drives:
+        localFiles.insert(END, d + ':\\')
+def populateLocal(changeloc):
+    os.chdir(changeloc)
+    templist = os.listdir()
+    templist.sort()
+    localFiles.delete(0, END)
+    if(os.path.abspath(os.curdir) != '/'):
+        localFiles.insert(END, '..')
+    for f in templist:
+        localFiles.insert(END, f)
 def populateRemote():
     pass
 def serverLogout():
     pass
 root = Tk()
-root.attributes('-zoomed', True)
+if(os.name == 'posix'):
+    root.attributes('-zoomed', True)
+else:
+    root.state('zoomed')
 root.title('FTP Client')
 root.iconphoto(False, PhotoImage(file = 'icon.png'))
 frm = ttk.Frame(root, padding = 10)
@@ -92,9 +123,10 @@ remoteFiles.grid(row=0, column=0, sticky='W')
 localFiles = Listbox(root)
 localFiles.grid(row=0, column=2, sticky='E')
 recieve = ttk.Button(root, text='Download', command=lambda:ftpobject.download(remoteFiles.get(remoteFiles.curselection())))
-recieve.grid(row=1, column=1, sticky='N S')
+recieve.grid(row=1, column=1, sticky='NS')
 transmit = ttk.Button(root, text='Upload', command=lambda:ftpobject.upload(localFiles.get(localFiles.curselection())))
-transmit.grid(row=2, column=1, sticky='N S')
+transmit.grid(row=2, column=1, sticky='NS')
 populateRemote()
-populateLocal()
+populateLocal(os.path.expanduser("~"))
+localFiles.bind('<Double-Button-1>', lambda x:directoryChange('local'))
 root.mainloop()
