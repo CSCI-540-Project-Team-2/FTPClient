@@ -51,15 +51,16 @@ class FTPBackend:
     def cd(self,fileName):
         if(fileName != ''):
             try:
-                self.server.cwd(directory)
-            except error_perm:
+                self.server.cwd(fileName)
+            except ftplib.error_perm:
                 pass
-        # change working directory
-        directory = input('Enter directory to go to: ')
-        try:
-            self.server.cwd(directory)
-        except ValueError:
-            print('ERROR: Directory not found!')
+        else:
+            # change working directory
+            directory = input('Enter directory to go to: ')
+            try:
+                self.server.cwd(directory)
+            except ValueError:
+                print('ERROR: Directory not found!')
 
     def logon(self):
         if(self.GUILaunch):

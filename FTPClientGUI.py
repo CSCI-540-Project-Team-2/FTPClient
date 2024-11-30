@@ -2,6 +2,7 @@ from FTPClient import *
 from tkinter import *
 from tkinter import ttk
 import os
+#nt is windows, posix is linux/macos
 if(os.name == 'nt'):
     import string
     from ctypes import windll
@@ -75,7 +76,10 @@ def directoryChange(location):
             WinDevs()
         else:
             os.chdir(localFiles.get(localFiles.curselection()))
-            populateLocal(os.path.abspath(os.curdir))
+            populateLocal()
+    elif(location == 'remote'):
+        ftpobject.cd(remoteFiles.get(remoteFiles.curselection()))
+        populateRemote()
 def WinDevs():
     drives = []
     bitmask = windll.kernel32.GetLogicalDrives()
@@ -87,8 +91,8 @@ def WinDevs():
     localFiles.delete(0,END)
     for d in drives:
         localFiles.insert(END, d + ':\\')
-def populateLocal(changeloc):
-    os.chdir(changeloc)
+
+def populateLocal():
     templist = os.listdir()
     templist.sort()
     localFiles.delete(0, END)
@@ -96,10 +100,22 @@ def populateLocal(changeloc):
         localFiles.insert(END, '..')
     for f in templist:
         localFiles.insert(END, f)
+
 def populateRemote():
-    pass
+    templist = ftpobject.server.nlst()
+    remoteFiles.delete(0,END)
+    remoteFiles.insert(END, '..')
+    for f in templist:
+        remoteFiles.insert(END, f)
+
 def serverLogout():
-    pass
+    localFiles.delete(0, END)
+    remoteFiles.delete(0, END)
+    global ftpobject
+    ftpobject.server.quit()
+    ftpobject = None
+    login_window()
+    
 root = Tk()
 if(os.name == 'posix'):
     root.attributes('-zoomed', True)
@@ -107,26 +123,51 @@ else:
     root.state('zoomed')
 root.title('FTP Client')
 root.iconphoto(False, PhotoImage(file = 'icon.png'))
-frm = ttk.Frame(root, padding = 10)
-frm.grid()
+textframe = ttk.Frame(root)
+mainframe = ttk.Frame(root)
+buttonframe = ttk.Frame(mainframe)
+recieve = ttk.Button(buttonframe, text='Download', command=lambda:ftpobject.download(remoteFiles.get(remoteFiles.curselection())))
+transmit = ttk.Button(buttonframe, text='Upload', command=lambda:ftpobject.upload(localFiles.get(localFiles.curselection())))
+recieve.pack()
+transmit.pack()
+remoteFiles = Listbox(mainframe)
+remoteScroll = ttk.Scrollbar(mainframe, orient='vertical')
+remoteFiles.config(yscrollcommand=remoteScroll.set)
+remoteScroll.config(command=remoteFiles.yview)
+localFiles = Listbox(mainframe)
+localScroll = ttk.Scrollbar(mainframe, orient='vertical')
+localFiles.config(yscrollcommand=localScroll.set)
+localScroll.config(command=localFiles.yview)
+log = Text(textframe, height=5)
+logScroll = ttk.Scrollbar(textframe, orient='vertical')
+log.config(yscrollcommand=logScroll.set)
+logScroll.config(command=log.yview)
+#remoteFiles.grid(row=0, column=0, sticky='W')
+#remoteScroll.grid(row=0, column=1)
+remoteFiles.pack(side='left', expand=True, fill='both')
+remoteScroll.pack(side='left', fill='y')
+buttonframe.pack(side='left')
+localFiles.pack(side='left',expand=True,  fill='both')
+localScroll.pack(side='left', fill='y')
+log.pack(side='left', expand='True', fill='both')
+logScroll.pack(side='left', fill='y')
+root.rowconfigure(0, weight=9)
+root.rowconfigure(1, weight=1)
+root.columnconfigure(0, weight=1)
+mainframe.grid(row=0, column=0, sticky='nsew')
+textframe.grid(row=1,column=0, sticky='nsew')
 menubar = Menu(root)
 file = Menu(menubar, tearoff = 0)
 menubar.add_cascade(label='File', menu=file)
 file.add_command(label = 'Quit', command = root.destroy)
 server = Menu(menubar, tearoff=0)
-server.add_command(label = 'Logout', command = serverLogout())
+server.add_command(label = 'Logout', command = lambda:serverLogout())
 menubar.add_cascade(label='Server', menu= server)
 root.config(menu=menubar)
 login_window()
-remoteFiles = Listbox(root)
-remoteFiles.grid(row=0, column=0, sticky='W')
-localFiles = Listbox(root)
-localFiles.grid(row=0, column=2, sticky='E')
-recieve = ttk.Button(root, text='Download', command=lambda:ftpobject.download(remoteFiles.get(remoteFiles.curselection())))
-recieve.grid(row=1, column=1, sticky='NS')
-transmit = ttk.Button(root, text='Upload', command=lambda:ftpobject.upload(localFiles.get(localFiles.curselection())))
-transmit.grid(row=2, column=1, sticky='NS')
 populateRemote()
-populateLocal(os.path.expanduser("~"))
+os.chdir(os.path.expanduser("~"))
+populateLocal()
 localFiles.bind('<Double-Button-1>', lambda x:directoryChange('local'))
+remoteFiles.bind('<Double-Button-1>', lambda x:directoryChange('remote'))
 root.mainloop()
