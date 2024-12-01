@@ -14,6 +14,13 @@ def anonDisable(var, a, b):
     else:
         a.config(state='normal')
         b.config(state='normal')
+def down():
+    try:
+        ftpobject.download(remoteFiles.get(remoteFiles.curselection()))
+        log('Downloaded ' + remoteFiles.get(remoteFiles.curselection()) + ' .')
+        populateLocal()
+    except ftplib.error_perm:
+        log('Can\'t download a directory.')
 def errMsg(title, message):
     errorMessage = Toplevel()
     errorMessage.transient(root)
@@ -44,7 +51,11 @@ def attemptLogin(window, toggle, s, u, p):
     except TimeoutError:
         errMsg('Timeout Error', 'Connection to the server timed out. Make sure you entered the right server and you are connected to the internet.')
         
-        
+def log(text):
+    logBox.config(state='normal')
+    logBox.insert(END, text + '\n')
+    logBox.config(state='disabled')
+
 def login_window():
     login = Toplevel()
     login.resizable(False, False)
@@ -114,8 +125,10 @@ def serverLogout():
     global ftpobject
     ftpobject.server.quit()
     ftpobject = None
+    log('Logged out.')
     login_window()
-    
+
+ftpdirstatus = []    
 root = Tk()
 if(os.name == 'posix'):
     root.attributes('-zoomed', True)
@@ -126,7 +139,7 @@ root.iconphoto(False, PhotoImage(file = 'icon.png'))
 textframe = ttk.Frame(root)
 mainframe = ttk.Frame(root)
 buttonframe = ttk.Frame(mainframe)
-recieve = ttk.Button(buttonframe, text='Download', command=lambda:ftpobject.download(remoteFiles.get(remoteFiles.curselection())))
+recieve = ttk.Button(buttonframe, text='Download', command=lambda:down())
 transmit = ttk.Button(buttonframe, text='Upload', command=lambda:ftpobject.upload(localFiles.get(localFiles.curselection())))
 recieve.pack()
 transmit.pack()
@@ -138,18 +151,16 @@ localFiles = Listbox(mainframe)
 localScroll = ttk.Scrollbar(mainframe, orient='vertical')
 localFiles.config(yscrollcommand=localScroll.set)
 localScroll.config(command=localFiles.yview)
-log = Text(textframe, height=5)
+logBox = Text(textframe, height=5, state='disabled', bg='grey')
 logScroll = ttk.Scrollbar(textframe, orient='vertical')
-log.config(yscrollcommand=logScroll.set)
-logScroll.config(command=log.yview)
-#remoteFiles.grid(row=0, column=0, sticky='W')
-#remoteScroll.grid(row=0, column=1)
+logBox.config(yscrollcommand=logScroll.set)
+logScroll.config(command=logBox.yview)
 remoteFiles.pack(side='left', expand=True, fill='both')
 remoteScroll.pack(side='left', fill='y')
 buttonframe.pack(side='left')
 localFiles.pack(side='left',expand=True,  fill='both')
 localScroll.pack(side='left', fill='y')
-log.pack(side='left', expand='True', fill='both')
+logBox.pack(side='left', expand='True', fill='both')
 logScroll.pack(side='left', fill='y')
 root.rowconfigure(0, weight=9)
 root.rowconfigure(1, weight=1)
@@ -165,6 +176,7 @@ server.add_command(label = 'Logout', command = lambda:serverLogout())
 menubar.add_cascade(label='Server', menu= server)
 root.config(menu=menubar)
 login_window()
+log('Successful login to ' + ftpobject.serverURL)
 populateRemote()
 os.chdir(os.path.expanduser("~"))
 populateLocal()

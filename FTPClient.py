@@ -2,7 +2,7 @@ import ftplib
 class FTPBackend:
     GUILaunch = False
     def __init__(self, server, user, passwd, isGUI):
-        self.server = server
+        self.serverURL = server
         self.user = user
         self.passwd = passwd
         self.GUILaunch = isGUI
@@ -28,14 +28,15 @@ class FTPBackend:
         # view contents of server
         self.server.dir()
 
-    def download(self, fileName):
+    def download(self, fileName, location):
         # filename to retrieve
         if(fileName != ''):
             try:
                 with open(fileName, 'wb') as file:
-                    self.server.retrbinary('RETR {fileName}', file.write)
+                    self.server.retrbinary(f'RETR {fileName}', file.write)
+                    return
             except ValueError:
-                print('i dunno')
+                return
         filename = input('Enter filename to download: ')
         try:
             with open(filename, 'wb') as file:
@@ -64,7 +65,7 @@ class FTPBackend:
 
     def logon(self):
         if(self.GUILaunch):
-            self.server = ftplib.FTP(self.server, self.user, self.passwd,'',10)
+            self.server = ftplib.FTP(self.serverURL, self.user, self.passwd,'',10)
         else:
             while True:
                 # credentials
