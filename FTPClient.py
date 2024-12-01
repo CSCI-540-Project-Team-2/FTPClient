@@ -6,15 +6,18 @@ class FTPBackend:
         self.user = user
         self.passwd = passwd
         self.GUILaunch = isGUI
+        self.secure = False
 
     def upload(self, fileName):
         # filename to upload
         if(fileName != ''):
             try:
                 with open(fileName, 'rb') as file:
-                    self.server.storbinary('STOR {fileName}', file)
+                    self.server.storbinary(f'STOR {fileName}', file)
+                    return
             except ValueError:
                 print('still dunno')
+                return
         filename = input('Enter filename to upload: ')
         try:
             with open(filename, 'rb') as file:
@@ -32,7 +35,8 @@ class FTPBackend:
         # filename to retrieve
         if(fileName != ''):
             try:
-                with open(fileName, 'wb') as file:
+                destination = location + fileName
+                with open(destination, 'wb') as file:
                     self.server.retrbinary(f'RETR {fileName}', file.write)
                     return
             except ValueError:
@@ -40,7 +44,7 @@ class FTPBackend:
         filename = input('Enter filename to download: ')
         try:
             with open(filename, 'wb') as file:
-                self.server.retrbinary('RETR {filename}', file.write)
+                self.server.retrbinary(f'RETR {filename}', file.write)
         except ValueError:
             print('ERROR: Could not download file!')
             self.server.quit()
@@ -65,7 +69,12 @@ class FTPBackend:
 
     def logon(self):
         if(self.GUILaunch):
-            self.server = ftplib.FTP(self.serverURL, self.user, self.passwd,'',10)
+            try:
+                self.server = ftplib.FTP_TLS(host=self.serverURL, user=self.user, passwd=self.passwd,timeout=10)
+                self.server.prot_p()
+                self.secure = True
+            except:
+                self.server = ftplib.FTP(self.serverURL, self.user, self.passwd,'',10)
         else:
             while True:
                 # credentials
@@ -100,7 +109,7 @@ class FTPBackend:
             if userInput.lower() == 'upload':
                 self.upload('')
             elif userInput.lower() == 'download':
-                self.download('')
+                self.download('','')
             elif userInput.lower() == 'view':
                 self.view()
             elif userInput.lower() == 'cd':

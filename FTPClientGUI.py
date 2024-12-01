@@ -15,30 +15,49 @@ def anonDisable(var, a, b):
         a.config(state='normal')
         b.config(state='normal')
 def down():
-    try:
-        ftpobject.download(remoteFiles.get(remoteFiles.curselection()))
-        log('Downloaded ' + remoteFiles.get(remoteFiles.curselection()) + ' .')
-        populateLocal()
-    except ftplib.error_perm:
+    filetoget = remoteFiles.get(remoteFiles.curselection())
+    if (filetoget[len(filetoget)-1]== '/'):
         log('Can\'t download a directory.')
-def errMsg(title, message):
+    else:
+        try:
+            ftpobject.download(filetoget, os.path.abspath(os.curdir) + ('/' if os.name == 'posix' else '\\'))
+            log('Downloaded ' + filetoget)
+            populateLocal()
+        except ftplib.error_perm:
+            log('Could not download the file.')
+
+def up():
+    filetoupload = localFiles.get(localFiles.curselection())
+    if (filetoupload[len(filetoupload)-1]== '/'):
+        log('Can\'t upload a directory.')
+    else:
+        try:
+            ftpobject.upload(filetoupload)#os.path.abspath(os.curdir) + ('/' if os.name == 'posix' else '\\')+filetoupload)
+            log('Uploaded ' + filetoupload)
+            populateRemote()
+        except ftplib.error_perm:
+            log('Could not upload the file')
+
+def errMsg(parent, title, message):
     errorMessage = Toplevel()
-    errorMessage.transient(root)
+    errorMessage.transient(parent)
     errorMessage.title(title)
     wrongMess = ttk.Label(errorMessage, text=message)
     wrongMess.pack()
     credOk = ttk.Button(errorMessage, text='Ok', command=lambda:errorMessage.destroy())
     credOk.pack()
+    errorMessage.grab_set()
+    parent.wait_window(errorMessage)
 
 def attemptLogin(window, toggle, s, u, p):
     global ftpobject
     if(s.get() == ''):
-        errMsg('Empty Server', 'Please enter a server address.')
+        errMsg(window, 'Empty Server', 'Please enter a server address.')
         return
     if(toggle.get()==1):
         ftpobject = FTPBackend(s.get(),'Anonymous', '', True)
     elif(u.get() == '' or p.get() == ''):
-        errMsg('Empty Fields', 'Please enter a username and password or select Anonymous.')
+        errMsg(window, 'Empty Fields', 'Please enter a username and password or select Anonymous.')
         return
     else:
         ftpobject = FTPBackend(s.get(),u.get(),p.get(), True)
@@ -47,9 +66,9 @@ def attemptLogin(window, toggle, s, u, p):
         #print(ftpobject.server.getresp())
         window.destroy()
     except ftplib.error_perm:
-        errMsg('Permission Error', 'Incorrect credentials or server only accepts Anonymous connections.')
+        errMsg(window, 'Permission Error', 'Incorrect credentials or server only accepts Anonymous connections.')
     except TimeoutError:
-        errMsg('Timeout Error', 'Connection to the server timed out. Make sure you entered the right server and you are connected to the internet.')
+        errMsg(window, 'Timeout Error', 'Connection to the server timed out. Make sure you entered the right server and you are connected to the internet.')
         
 def log(text):
     logBox.config(state='normal')
@@ -90,11 +109,15 @@ def directoryChange(location):
             populateLocal()
     elif(location == 'remote'):
         ftpobject.cd(remoteFiles.get(remoteFiles.curselection()))
+        if(remoteFiles.get(remoteFiles.curselection())=='..'):
+            log('Entered previous directory')
+        else: 
+            log('Entered ' + remoteFiles.get(remoteFiles.curselection()))
         populateRemote()
+
 def WinDevs():
     drives = []
     bitmask = windll.kernel32.GetLogicalDrives()
-    print(bitmask)
     for letter in string.ascii_uppercase:
         if bitmask & 1:
             drives.append(letter)
@@ -110,14 +133,26 @@ def populateLocal():
     if(os.path.abspath(os.curdir) != '/'):
         localFiles.insert(END, '..')
     for f in templist:
-        localFiles.insert(END, f)
+        if(os.path.isdir(f)):
+            localFiles.insert(END, f + '/')
+        else:
+            localFiles.insert(END, f)
 
 def populateRemote():
     templist = ftpobject.server.nlst()
     remoteFiles.delete(0,END)
     remoteFiles.insert(END, '..')
-    for f in templist:
-        remoteFiles.insert(END, f)
+    isdir = []
+    ftpobject.server.dir(isdir.append)
+    isdir = [d[0] for d in isdir]
+    for i in range(len(isdir)):
+        if(isdir[i]=='d' or isdir[i] == 'l'):
+            isdir[i]= '/'
+        else:
+            isdir[i] = ''
+    for i in range(len(templist)):
+        remoteFiles.insert(END, templist[i] + isdir[i])
+
 
 def serverLogout():
     localFiles.delete(0, END)
@@ -127,8 +162,32 @@ def serverLogout():
     ftpobject = None
     log('Logged out.')
     login_window()
+    postLogin()
 
-ftpdirstatus = []    
+def postLogin():
+    log('Successful login to ' + ftpobject.serverURL)
+    if(ftpobject.secure):
+        log('This connection is secured with FTPS!')
+    populateRemote()
+    os.chdir(os.path.expanduser("~"))
+    populateLocal()
+
+def credits():
+    creditPopup = Toplevel()
+    creditPopup.title('About FTPClient')
+    creditPopup.resizable(False,False)
+    creditPopup.transient(root)
+    names = ttk.Label(creditPopup, text='Authors: Erin Rodriguez, Jerome Benoit, Ryan Brewster, James Gregg, Gabriel Herron')
+    group = ttk.Label(creditPopup, text='This was a collaborative effort by Team 5.')
+    classtext = ttk.Label(creditPopup, text='CSCI 540 - USC Upstate 2024')
+    exitbutton = ttk.Button(creditPopup, text='Cool!', command = lambda:creditPopup.destroy())
+    names.pack()
+    group.pack()
+    classtext.pack()
+    exitbutton.pack()
+    creditPopup.grab_set()
+    root.wait_window(creditPopup)
+   
 root = Tk()
 if(os.name == 'posix'):
     root.attributes('-zoomed', True)
@@ -140,7 +199,7 @@ textframe = ttk.Frame(root)
 mainframe = ttk.Frame(root)
 buttonframe = ttk.Frame(mainframe)
 recieve = ttk.Button(buttonframe, text='Download', command=lambda:down())
-transmit = ttk.Button(buttonframe, text='Upload', command=lambda:ftpobject.upload(localFiles.get(localFiles.curselection())))
+transmit = ttk.Button(buttonframe, text='Upload', command=lambda:up())
 recieve.pack()
 transmit.pack()
 remoteFiles = Listbox(mainframe)
@@ -173,13 +232,12 @@ menubar.add_cascade(label='File', menu=file)
 file.add_command(label = 'Quit', command = root.destroy)
 server = Menu(menubar, tearoff=0)
 server.add_command(label = 'Logout', command = lambda:serverLogout())
+server.add_command(label ='Security Status' , command = lambda:errMsg(root, 'Security Status', 'This server is '+ ('secured' if ftpobject.secure else 'not secured') + ' with FTPS'))
 menubar.add_cascade(label='Server', menu= server)
+menubar.add_command(label = 'About', command=lambda:credits())
 root.config(menu=menubar)
 login_window()
-log('Successful login to ' + ftpobject.serverURL)
-populateRemote()
-os.chdir(os.path.expanduser("~"))
-populateLocal()
+postLogin()
 localFiles.bind('<Double-Button-1>', lambda x:directoryChange('local'))
 remoteFiles.bind('<Double-Button-1>', lambda x:directoryChange('remote'))
 root.mainloop()
