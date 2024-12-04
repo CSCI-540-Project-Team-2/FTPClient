@@ -102,17 +102,19 @@ def login_window():
     root.wait_window(login)
 def directoryChange(location):
     if(location == 'local' and os.path.isdir(localFiles.get(localFiles.curselection()))):
-        if(os.path.abspath(os.curdir) == (os.path.abspath(os.curdir)[0] + ':\\') and localFiles.get(localFiles.curselection()) == '..'):
+        selection = localFiles.get(localFiles.curselection()) 
+        if(os.path.abspath(os.curdir) == (os.path.abspath(os.curdir)[0] + ':\\') and selection == '..'):
             WinDevs()
         else:
-            os.chdir(localFiles.get(localFiles.curselection()))
+            os.chdir(selection)
             populateLocal()
-    elif(location == 'remote'):
-        ftpobject.cd(remoteFiles.get(remoteFiles.curselection()))
-        if(remoteFiles.get(remoteFiles.curselection())=='..'):
+    elif(location == 'remote' and (remoteFiles.get(remoteFiles.curselection())[len(remoteFiles.get(remoteFiles.curselection()))-1] == '/' or remoteFiles.get(remoteFiles.curselection()) ==  '..')):
+        selection = remoteFiles.get(remoteFiles.curselection()) 
+        ftpobject.cd(selection)
+        if(selection=='..'):
             log('Entered previous directory')
         else: 
-            log('Entered ' + remoteFiles.get(remoteFiles.curselection()))
+            log('Entered ' + selection)
         populateRemote()
 
 def WinDevs():
@@ -240,4 +242,7 @@ login_window()
 postLogin()
 localFiles.bind('<Double-Button-1>', lambda x:directoryChange('local'))
 remoteFiles.bind('<Double-Button-1>', lambda x:directoryChange('remote'))
-root.mainloop()
+try:
+    root.mainloop()
+except ftplib.error_temp:
+    errMsg(root, 'Timeout Error', 'Connection to the server timed out, please login again.')
